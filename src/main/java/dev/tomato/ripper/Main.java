@@ -2,6 +2,8 @@ package dev.tomato.ripper;
 
 public class Main {
 
+    public static final String VERSION = "1.0.0";
+
     public static void main(String[] args) {
         if (!Downloader.isAvailable()) {
             javax.swing.SwingUtilities.invokeLater(() -> {
@@ -23,7 +25,7 @@ public class Main {
             return;
         }
 
-        System.out.println("yt-dlp version: " + Downloader.getVersion());
+        System.out.println("Tomato Media Ripper " + VERSION + " | yt-dlp " + Downloader.getVersion());
         System.out.println("Launching Tomato Media Ripper...");
 
         Gui.launch();

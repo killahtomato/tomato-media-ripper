@@ -99,14 +99,14 @@ final class Gui {
         header.setOpaque(false);
         header.setBorder(new EmptyBorder(0, 0, GAP, 0));
 
-        JLabel title = new JLabel("Tomato's Audio/Video Ripper");
-        title.setForeground(TEXT);
+        JLabel title = new JLabel("<html><span style='color:" + css(RED) + ";'>Tomato's</span>"
+                + "<span style='color:" + css(TEXT) + ";'> Audio/Video Ripper</span></html>");
         title.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 22));
         header.add(title, BorderLayout.WEST);
 
-        JLabel version = new JLabel("yt-dlp " + Downloader.getVersion());
-        version.setForeground(MUTED);
-        version.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        JLabel version = new JLabel("v" + Main.VERSION);
+        version.setForeground(GREEN);
+        version.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
         header.add(version, BorderLayout.EAST);
 
         root.add(header, BorderLayout.NORTH);
@@ -151,11 +151,12 @@ final class Gui {
         pasteBtn.setToolTipText("Paste the URL from your clipboard");
         pasteBtn.addActionListener(e -> pasteFromClipboard());
 
-        infoBtn = smallButton("Get Info");
+        infoBtn = coloredButton("Get Info", ACCENT, Color.WHITE);
         infoBtn.setToolTipText("Preview title, thumbnail and duration without downloading");
         infoBtn.addActionListener(e -> fetchPreview());
 
-        downloadBtn = accentButton("Download");
+        downloadBtn = coloredButton("Download", GREEN, Color.WHITE);
+        downloadBtn.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
         downloadBtn.addActionListener(e -> startDownload());
 
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
@@ -416,6 +417,7 @@ final class Gui {
         downloadBtn.setEnabled(false);
         downloadBtn.setText("Downloading...");
         progressBar.setValue(0);
+        progressBar.setForeground(ACCENT);
         setStatus("Starting download...", TEXT);
 
         new DownloadWorker(url, folder, format).execute();
@@ -480,6 +482,7 @@ final class Gui {
             try {
                 File file = get();
                 progressBar.setValue(100);
+                progressBar.setForeground(GREEN);
                 setStatus("Downloaded: " + file.getName(), GREEN);
                 addHistoryEntry(url, file);
                 openFolder(file.getParentFile());
@@ -730,12 +733,10 @@ final class Gui {
         return btn;
     }
 
-    private static JButton accentButton(String text) {
+    private static JButton coloredButton(String text, Color bg, Color fg) {
         JButton btn = smallButton(text);
-        btn.setBackground(ACCENT);
-        btn.setForeground(Color.WHITE);
-        btn.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
-        btn.setBorder(new EmptyBorder(6, 14, 6, 14));
+        btn.setBackground(bg);
+        btn.setForeground(fg);
         return btn;
     }
 
@@ -763,6 +764,10 @@ final class Gui {
     private static String esc(String s) {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("\"", "&quot;");
+    }
+
+    private static String css(Color c) {
+        return String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
     }
 
     private record DownloadEntry(String url, File file) {
