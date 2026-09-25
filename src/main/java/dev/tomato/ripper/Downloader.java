@@ -19,20 +19,31 @@ final class Downloader {
         Q1080("1080p (video)", "bestvideo[ext=mp4][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][height<=1080]/best", false),
         Q720("720p (video)", "bestvideo[ext=mp4][height<=720]+bestaudio[ext=m4a]/best[ext=mp4][height<=720]/best", false),
         Q480("480p (video)", "bestvideo[ext=mp4][height<=480]+bestaudio[ext=m4a]/best[ext=mp4][height<=480]/best", false),
-        MP3("Audio (MP3)", "bestaudio/best", true);
+        MP3("Audio (MP3)", "bestaudio/best", true, false),
+        GIF("Animated GIF", "bestvideo[ext=mp4]/best[ext=mp4]/best", false, true);
 
         private final String label;
         private final String selector;
         private final boolean audio;
+        private final boolean gif;
 
         DownloadFormat(String label, String selector, boolean audio) {
+            this(label, selector, audio, false);
+        }
+
+        DownloadFormat(String label, String selector, boolean audio, boolean gif) {
             this.label = label;
             this.selector = selector;
             this.audio = audio;
+            this.gif = gif;
         }
 
         boolean isAudio() {
             return audio;
+        }
+
+        boolean isGif() {
+            return gif;
         }
 
         @Override
@@ -178,7 +189,11 @@ final class Downloader {
             if (exitCode == 0 && downloadedFile[0] != null) {
                 File file = new File(downloadedFile[0]);
                 if (file.exists()) {
-                    onComplete.accept(file);
+                    if (format.isGif()) {
+                        convertToGif(file, onComplete, onError);
+                    } else {
+                        onComplete.accept(file);
+                    }
                 } else {
                     onError.accept("Download completed but file not found: " + downloadedFile[0]);
                 }
@@ -193,6 +208,33 @@ final class Downloader {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             onError.accept("Download interrupted");
+        }
+    }
+
+    private static void convertToGif(File source, Consumer<File> onComplete, Consumer<String> onError) {
+        String name = source.getName();
+        int extension = name.lastIndexOf('.');
+        String gifName = (extension > 0 ? name.substring(0, extension) : name) + ".gif";
+        File target = new File(source.getParentFile(), gifName);
+        List<String> cmd = List.of(
+                "ffmpeg", "-y", "-i", source.getAbsolutePath(),
+                "-vf", "fps=15,scale=720:-1:flags=lanczos",
+                "-loop", "0", target.getAbsolutePath()
+        );
+        try {
+            Process proc = new ProcessBuilder(cmd).redirectErrorStream(true).start();
+            proc.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
+            int exitCode = proc.waitFor();
+            if (exitCode == 0 && target.exists()) {
+                onComplete.accept(target);
+            } else {
+                onError.accept("Could not convert video to GIF (is FFmpeg installed?)");
+            }
+        } catch (IOException e) {
+            onError.accept("Failed to start FFmpeg: " + e.getMessage());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            onError.accept("GIF conversion interrupted");
         }
     }
 
